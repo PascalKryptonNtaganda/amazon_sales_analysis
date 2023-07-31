@@ -1,0 +1,269 @@
+---
+author: Pascal Ntaganda
+date: 2022-11-06
+generator: pandoc
+title: amazon_sales_data
+viewport: width=device-width, initial-scale=1
+---
+
+::: {.container-fluid .main-container}
+::: {#header}
+# amazon_sales_data {#amazon_sales_data .title .toc-ignore}
+
+#### Pascal Ntaganda {#pascal-ntaganda .author}
+
+#### 2022-11-06 {#section .date}
+:::
+
+::: {#amazon-2019-sales-data-in-us-urban-zipcodes. .section .level2}
+## AMAZON 2019 SALES DATA IN US URBAN ZIPCODES.
+:::
+
+::: {#asssessing-factors-that-explain-sales-in-the-selected-regions. .section .level1}
+# Asssessing factors that explain sales in the selected regions.
+
+``` r
+library(tidyverse)
+```
+
+    ## ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.2 ──
+    ## ✔ ggplot2 3.3.6      ✔ purrr   0.3.4 
+    ## ✔ tibble  3.1.8      ✔ dplyr   1.0.10
+    ## ✔ tidyr   1.2.1      ✔ stringr 1.4.1 
+    ## ✔ readr   2.1.3      ✔ forcats 0.5.2 
+    ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+    ## ✖ dplyr::filter() masks stats::filter()
+    ## ✖ dplyr::lag()    masks stats::lag()
+
+``` r
+library(here)
+```
+
+    ## here() starts at /Users/krypton
+
+``` r
+library(vtable)
+```
+
+    ## Loading required package: kableExtra
+    ## 
+    ## Attaching package: 'kableExtra'
+    ## 
+    ## The following object is masked from 'package:dplyr':
+    ## 
+    ##     group_rows
+
+``` r
+library(lubridate)
+```
+
+    ## 
+    ## Attaching package: 'lubridate'
+    ## 
+    ## The following objects are masked from 'package:base':
+    ## 
+    ##     date, intersect, setdiff, union
+
+``` r
+library(hrbrthemes)
+```
+
+    ## NOTE: Either Arial Narrow or Roboto Condensed fonts are required to use these themes.
+    ##       Please use hrbrthemes::import_roboto_condensed() to install Roboto Condensed and
+    ##       if Arial Narrow is not on your system, please see https://bit.ly/arialnarrow
+
+``` r
+library(ggalt)
+```
+
+    ## Registered S3 methods overwritten by 'ggalt':
+    ##   method                  from   
+    ##   grid.draw.absoluteGrob  ggplot2
+    ##   grobHeight.absoluteGrob ggplot2
+    ##   grobWidth.absoluteGrob  ggplot2
+    ##   grobX.absoluteGrob      ggplot2
+    ##   grobY.absoluteGrob      ggplot2
+
+``` r
+library(ggplot2)
+
+
+load(here("Downloads","sales_data.Rdata"))
+zip_info <- read_csv(here("Downloads","zip_info.csv"))
+```
+
+    ## Rows: 10 Columns: 13
+    ## ── Column specification ────────────────────────────────────────────────────────
+    ## Delimiter: ","
+    ## dbl (13): ZIP, TotalPopulation, MedianHHIncome, PCIncome, MedianAge, Race_Wh...
+    ## 
+    ## ℹ Use `spec()` to retrieve the full column specification for this data.
+    ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
+``` r
+most <- sales %>% 
+  select(
+    Product, Quantity
+  ) %>% 
+  group_by(     ## Most sold products
+    Product
+  ) %>% 
+  count() %>% 
+  arrange(
+    desc(n)
+  ) %>% 
+  head(10)
+
+'Products with the highest sales, with USB C cable topping the list'
+```
+
+    ## [1] "Products with the highest sales, with USB C cable topping the list"
+
+``` r
+ggplot(most, aes(x=Product, y=n))+
+  geom_bar(stat="identity", color="blue", fill="grey") +
+  geom_text(aes(label=n), vjust= -1, color="blue",
+            size=3, hjust = 1, nudge_x = -.5) +
+  scale_fill_brewer(palette="Paired") +
+  theme_minimal() +
+   labs(x = NULL, y = 'Number of items', title = 'Amazon 2019 top 10 sold technology products in,\n urban US zipcodes.') + 
+  coord_flip() 
+```
+
+![](vertopal_498fcb86230f41cc8d8c0fc81c5da478/6c8fec362d4da4298628262f7d6c76809105379d.png){width="672"}
+
+``` r
+sales$ZIP = as.numeric(as.character(sales$ZIP)) 
+zip_info$ZIP = as.numeric(zip_info$ZIP)
+
+
+loc <- zip_info %>% inner_join(sales) 
+```
+
+    ## Joining, by = "ZIP"
+
+``` r
+date_sales <- loc %>% 
+    select(
+    Product, Date
+  ) %>% 
+  group_by(               ## sales by date
+    Date
+  ) %>% 
+  count() 
+  
+' Total sales and their time frame showing the gradual increase in the sales towards the end of the year.'
+```
+
+    ## [1] " Total sales and their time frame showing the gradual increase in the sales towards the end of the year."
+
+``` r
+ggplot(date_sales, aes(x=Date, y=n)) +
+  geom_line( color="#69b3a2") + 
+  xlab("Date") + ylab("Total sales") + ggtitle("Total Amazon sales in 2019 US urban zipcodes") +
+  theme_ipsum() +
+  theme(axis.text.x=element_text(angle=60, hjust=1)) +
+  stat_smooth(colour="red")
+```
+
+    ## `geom_smooth()` using method = 'loess' and formula 'y ~ x'
+
+![](vertopal_498fcb86230f41cc8d8c0fc81c5da478/cd23765a92f782373b0a36b27f05889a683e896d.png){width="672"}
+
+``` r
+price_sales <- loc %>% 
+  select(
+    Product, PriceEach
+  ) %>% 
+  group_by(                   ## sales by price
+    Product, PriceEach
+  ) %>% 
+  count() %>% 
+  arrange(
+    desc(n)
+  ) %>% 
+  head(10)
+
+'The price of the top ten products sold by amazon'
+```
+
+    ## [1] "The price of the top ten products sold by amazon"
+
+``` r
+ggplot(price_sales, aes(x = Product, y = PriceEach)) + 
+geom_lollipop() + theme_classic() + 
+labs(x = 'Product',y = 'Price of each product') +
+  theme_ipsum() +
+  coord_flip() +
+  theme(
+    legend.position="none"
+  ) +
+  xlab("Product") +
+  ylab("Price") +
+  ggtitle("Price of top 10 products sold by Amazon in 2019\n US urban zipcodes") +
+  geom_point(
+    color=ifelse(price_sales$Product %in% c("Bose SoundSport Headphones"), "orange", "grey"),
+    size=ifelse(price_sales$PriceEach %in% c("Bose SoundSport Headphones"), 99.99, 5)
+  ) 
+```
+
+![](vertopal_498fcb86230f41cc8d8c0fc81c5da478/85ccf93ef3fb4e064e1b45fc7059d07142b31b23.png){width="672"}
+
+``` r
+state_sales <- loc %>% 
+  select(
+    Product, State, ZIP
+  ) %>% 
+  group_by(
+    State, ZIP                             ## sales by state
+  ) %>% 
+  count()
+
+' California has the most Amazon tech sales.'
+```
+
+    ## [1] " California has the most Amazon tech sales."
+
+``` r
+ggplot(state_sales, aes(x=State, y=n))+
+  geom_bar(stat="identity", color="grey", fill="grey") +
+  scale_fill_brewer(palette="Paired") +
+  theme_minimal() +
+  labs(x = NULL, y = 'Total Sales', title = 'Amazon 2019 top 10 sold technology products in,\n urban US zipcodes by State.') +
+  annotate("text", x = 'GA', y = 60000, label = "California has the most sales")
+```
+
+![](vertopal_498fcb86230f41cc8d8c0fc81c5da478/c9dadac5bc453070bab5b68310f812f1e28e45b4.png){width="672"}
+
+``` r
+age <- loc %>% 
+  select(
+    MedianAge, Product
+  ) %>% 
+  group_by(                        ## sales by median age
+    MedianAge
+  ) %>% 
+  count()
+
+' Most purchases are from households with a median age between 28 and 40.'
+```
+
+    ## [1] " Most purchases are from households with a median age between 28 and 40."
+
+``` r
+ggplot(age, aes(MedianAge, n)) +
+  geom_point(shape = 23, fill = "lightgray", 
+             color = "black", size = 4)+
+  theme_minimal() +
+  scale_size_manual() +
+  geom_jitter(alpha = 0.3, color = "tomato") +
+  labs(x = 'Median age', y = 'Total sales', title = 'Amazon 2019 top 10 sold technology products in\n urban US zipcodes by      Median age') + 
+  annotate("text", x = 35, y = 40000, label = "Most sales in households with\n a median age between 30 and 40") +               geom_vline(xintercept = 28, linetype="dotted", 
+                color = "blue", size=1.5) +
+  geom_vline(xintercept = 40, linetype="dotted", 
+                color = "blue", size=1.5)
+```
+
+![](vertopal_498fcb86230f41cc8d8c0fc81c5da478/b41c8e8823b1e224eded5dea87677935dc5a13b0.png){width="672"}
+:::
+:::
